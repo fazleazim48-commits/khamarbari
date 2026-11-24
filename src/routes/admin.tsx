@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   Package,
   ShoppingBag,
@@ -23,11 +23,13 @@ import {
   Eye,
   ShieldCheck,
   Save,
+  Film,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BrandLogo } from "@/components/BrandLogo";
 import { farmStore, useFarmData, type ProductItem, type OrderItem, type GalleryItem } from "@/lib/store";
 import { useAuth } from "@/context/AuthContext";
+import { saveVideoBlob, getVideoBlob, deleteVideoBlob } from "@/lib/video-db";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -69,6 +71,30 @@ function AdminDashboard() {
   const [videoUrl, setVideoUrl] = useState(data.settings.videoUrl);
   const [videoTitle, setVideoTitle] = useState(data.settings.videoTitle);
   const [videoDesc, setVideoDesc] = useState(data.settings.videoDescription);
+  const [videoUploadMode, setVideoUploadMode] = useState<"upload" | "url">(
+    data.settings.videoUrl?.startsWith("indexeddb:") ? "upload" : "upload"
+  );
+  const [uploadedVideoBlobUrl, setUploadedVideoBlobUrl] = useState<string | null>(null);
+  const [isUploadingVideo, setIsUploadingVideo] = useState(false);
+  const videoFileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    let active = true;
+    let url: string | null = null;
+    if (data.settings.videoUrl?.startsWith("indexeddb:")) {
+      const key = data.settings.videoUrl.replace("indexeddb:", "");
+      getVideoBlob(key).then((blob) => {
+        if (active && blob) {
+          url = URL.createObjectURL(blob);
+          setUploadedVideoBlobUrl(url);
+        }
+      });
+    }
+    return () => {
+      active = false;
+      if (url) URL.revokeObjectURL(url);
+    };
+  }, [data.settings.videoUrl]);
 
   // Settings State
   const [settingsForm, setSettingsForm] = useState({
@@ -212,6 +238,41 @@ function AdminDashboard() {
       videoDescription: videoDesc,
     });
     showToast("ভিডিও ও মিডিয়া সেটিংস সংরক্ষিত হয়েছে!");
+  };
+
+  const handleDirectVideoUpload = async (file: File) => {
+    if (file.size > 200 * 1024 * 1024) {
+      alert("ভিডিও ফাইলের সাইজ ২০০ MB এর কম হতে হবে।");
+      return;
+    }
+    setIsUploadingVideo(true);
+    try {
+      await saveVideoBlob("main_farm_video", file);
+      const objUrl = URL.createObjectURL(file);
+      setUploadedVideoBlobUrl(objUrl);
+      setVideoUrl("indexeddb:main_farm_video");
+      farmStore.updateSettings({
+        videoUrl: "indexeddb:main_farm_video",
+        videoTitle: videoTitle || file.name.replace(/\.[^/.]+$/, ""),
+        videoDescription: videoDesc,
+      });
+      showToast("ভিডিও সরাসরি আপলোড সম্পন্ন হয়েছে!");
+    } catch (err) {
+      console.error(err);
+      alert("ভিডিও আপলোড করতে সমস্যা হয়েছে।");
+    } finally {
+      setIsUploadingVideo(false);
+    }
+  };
+
+  const handleDeleteUploadedVideo = async () => {
+    if (confirm("আপনি কি নিশ্চিত যে আপলোড করা ভিডিওটি মুছে ফেলতে চান?")) {
+      await deleteVideoBlob("main_farm_video");
+      setUploadedVideoBlobUrl(null);
+      setVideoUrl("");
+      farmStore.updateSettings({ videoUrl: "" });
+      showToast("ভিডিও মুছে ফেলা হয়েছে।");
+    }
   };
 
   const handleSaveSettings = (e: React.FormEvent) => {
@@ -652,36 +713,148 @@ function AdminDashboard() {
           <div className="space-y-6 animate-in fade-in duration-200">
             <div>
               <h2 className="font-display text-2xl font-bold text-foreground">ভিডিও ও ব্যানার মিডিয়া</h2>
-              <p className="text-sm text-muted-foreground">হোমপেজের ভিডিও লিঙ্ক ও প্রধান ব্যানার ছবি পরিবর্তন করুন</p>
+              <p className="text-sm text-muted-foreground">
+                কম্পিউটার থেকে সরাসরি ভিডিও ফাইল আপলোড করুন অথবা ইউটিউব ভিডিও লিংক যুক্ত করুন
+              </p>
             </div>
 
             <div className="grid gap-8 lg:grid-cols-2">
               {/* Video Editor */}
               <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
                 <h3 className="font-display text-lg font-bold text-foreground border-b border-border pb-3 flex items-center gap-2">
-                  <Video className="size-5 text-primary" /> হোমপেজ ভিডিও পরিবর্তন
+                  <Video className="size-5 text-primary" /> খামারের প্রধান ভিডিও সেটআপ
                 </h3>
-                <form onSubmit={handleSaveMedia} className="mt-5 space-y-4">
-                  <label className="block text-xs font-semibold text-foreground">
-                    <span>ভিডিও লিংক (YouTube বা Direct Video URL)</span>
-                    <input
-                      type="text"
-                      value={videoUrl}
-                      onChange={(e) => setVideoUrl(e.target.value)}
-                      placeholder="https://www.youtube.com/watch?v=..."
-                      className="mt-1.5 h-11 w-full rounded-lg border border-input bg-background px-3 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-                    />
-                    <span className="mt-1 block text-[11px] text-muted-foreground">
-                      ইউটিউব ভিডিওর সম্পূর্ণ লিংক বা যেকোনো ডিরেক্ট mp4 ভিডিও লিংক দিন।
-                    </span>
-                  </label>
 
+                {/* Mode Selector */}
+                <div className="mt-4 flex gap-2 rounded-lg bg-secondary p-1">
+                  <button
+                    type="button"
+                    onClick={() => setVideoUploadMode("upload")}
+                    className={`flex-1 rounded-md py-2 text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                      videoUploadMode === "upload"
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <Upload className="size-3.5" /> কম্পিউটার থেকে সরাসরি আপলোড
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setVideoUploadMode("url")}
+                    className={`flex-1 rounded-md py-2 text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                      videoUploadMode === "url"
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <ExternalLink className="size-3.5" /> ইউটিউব / অনলাইন লিংক
+                  </button>
+                </div>
+
+                {/* Direct Upload Section */}
+                {videoUploadMode === "upload" && (
+                  <div className="mt-5 space-y-4">
+                    <input
+                      type="file"
+                      ref={videoFileInputRef}
+                      accept="video/*"
+                      onChange={(e) => {
+                        if (e.target.files?.[0]) {
+                          handleDirectVideoUpload(e.target.files[0]);
+                        }
+                      }}
+                      className="hidden"
+                    />
+
+                    {videoUrl?.startsWith("indexeddb:") ? (
+                      <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-5 text-center">
+                        <div className="mx-auto grid size-12 place-items-center rounded-full bg-emerald-500/20 text-emerald-700">
+                          <CheckCircle2 className="size-6" />
+                        </div>
+                        <h4 className="mt-2.5 font-bold text-sm text-foreground">
+                          ভিডিও সরাসরি সফলভাবে আপলোড করা আছে
+                        </h4>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          আপনার কম্পিউটার থেকে আপলোড করা ভিডিওটি সংরক্ষিত রয়েছে।
+                        </p>
+                        <div className="mt-4 flex justify-center gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            disabled={isUploadingVideo}
+                            onClick={() => videoFileInputRef.current?.click()}
+                            className="text-xs font-semibold gap-1.5"
+                          >
+                            <Upload className="size-3.5" /> নতুন ভিডিও দিয়ে পরিবর্তন করুন
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={handleDeleteUploadedVideo}
+                            className="text-xs text-destructive hover:bg-destructive/10 gap-1.5"
+                          >
+                            <Trash2 className="size-3.5" /> মুছে ফেলুন
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div
+                        onClick={() => videoFileInputRef.current?.click()}
+                        className="cursor-pointer rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 p-8 text-center transition hover:border-primary hover:bg-primary/10"
+                      >
+                        <div className="mx-auto grid size-12 place-items-center rounded-full bg-primary/10 text-primary">
+                          <Upload className="size-6" />
+                        </div>
+                        <h4 className="mt-3 font-bold text-sm text-foreground">
+                          {isUploadingVideo ? "ভিডিও সেভ হচ্ছে... একটু অপেক্ষা করুন" : "কম্পিউটার থেকে ভিডিও ফাইল আপলোড করুন"}
+                        </h4>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          MP4, WebM, MOV ফাইল নির্বাচন করুন (সর্বোচ্চ ২০০ MB)
+                        </p>
+                        <Button
+                          type="button"
+                          size="sm"
+                          disabled={isUploadingVideo}
+                          className="mt-4 font-bold gap-1.5"
+                        >
+                          <Upload className="size-3.5" />{" "}
+                          {isUploadingVideo ? "আপলোড হচ্ছে..." : "ভিডিও ফাইল ব্রাউজ করুন"}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Online/YouTube Link Section */}
+                {videoUploadMode === "url" && (
+                  <div className="mt-5 space-y-4">
+                    <label className="block text-xs font-semibold text-foreground">
+                      <span>ভিডিও লিংক (YouTube বা Direct Video URL)</span>
+                      <input
+                        type="text"
+                        value={videoUrl?.startsWith("indexeddb:") ? "" : videoUrl}
+                        onChange={(e) => setVideoUrl(e.target.value)}
+                        placeholder="https://www.youtube.com/watch?v=..."
+                        className="mt-1.5 h-11 w-full rounded-lg border border-input bg-background px-3 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                      />
+                      <span className="mt-1 block text-[11px] text-muted-foreground">
+                        ইউটিউব ভিডিওর সম্পূর্ণ লিংক অথবা অনলাইন ভিডিওর সরাসরি URL দিন।
+                      </span>
+                    </label>
+                  </div>
+                )}
+
+                {/* Common Title & Description */}
+                <form onSubmit={handleSaveMedia} className="mt-4 space-y-4 border-t border-border pt-4">
                   <label className="block text-xs font-semibold text-foreground">
                     <span>ভিডিওর শিরোনাম</span>
                     <input
                       type="text"
                       value={videoTitle}
                       onChange={(e) => setVideoTitle(e.target.value)}
+                      placeholder="খামার বাড়ির কার্যক্রম দেখুন"
                       className="mt-1.5 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm outline-none focus:border-primary"
                     />
                   </label>
@@ -692,12 +865,13 @@ function AdminDashboard() {
                       rows={3}
                       value={videoDesc}
                       onChange={(e) => setVideoDesc(e.target.value)}
+                      placeholder="ভিডিও সম্পর্কে সংক্ষিপ্ত বিবরণ লিখুন..."
                       className="mt-1.5 w-full rounded-lg border border-input bg-background p-2.5 text-sm outline-none focus:border-primary"
                     />
                   </label>
 
-                  <Button type="submit" className="gap-2">
-                    <Save className="size-4" /> ভিডিও সংরক্ষণ করুন
+                  <Button type="submit" className="gap-2 font-bold">
+                    <Save className="size-4" /> শিরোনাম ও বিবরণ সংরক্ষণ করুন
                   </Button>
                 </form>
               </div>
@@ -705,15 +879,28 @@ function AdminDashboard() {
               {/* Live Preview */}
               <div className="rounded-xl border border-border bg-card p-6 shadow-sm flex flex-col justify-between">
                 <div>
-                  <h3 className="font-display text-lg font-bold text-foreground border-b border-border pb-3">
-                    ভিডিও লাইভ প্রিভিউ
+                  <h3 className="font-display text-lg font-bold text-foreground border-b border-border pb-3 flex items-center gap-2">
+                    <Eye className="size-4 text-primary" /> ভিডিও লাইভ প্রিভিউ
                   </h3>
-                  <div className="mt-4 aspect-video w-full rounded-lg overflow-hidden bg-black/80 flex items-center justify-center">
-                    {videoUrl ? (
+
+                  <div className="mt-4 aspect-video w-full rounded-xl overflow-hidden bg-black flex items-center justify-center border border-border">
+                    {videoUrl?.startsWith("indexeddb:") ? (
+                      uploadedVideoBlobUrl ? (
+                        <video
+                          src={uploadedVideoBlobUrl}
+                          controls
+                          className="size-full object-contain"
+                        />
+                      ) : (
+                        <p className="text-white/70 text-xs">ভিডিও ফাইল লোড হচ্ছে...</p>
+                      )
+                    ) : videoUrl ? (
                       <iframe
                         src={
                           videoUrl.includes("watch?v=")
                             ? `https://www.youtube.com/embed/${videoUrl.split("watch?v=")[1]?.split("&")[0]}`
+                            : videoUrl.includes("youtu.be/")
+                            ? `https://www.youtube.com/embed/${videoUrl.split("youtu.be/")[1]?.split("?")[0]}`
                             : videoUrl
                         }
                         title={videoTitle}
@@ -721,12 +908,16 @@ function AdminDashboard() {
                         allowFullScreen
                       />
                     ) : (
-                      <p className="text-white text-xs">ভিডিও লিংক দিলে এখানে প্রিভিউ দেখতে পাবেন</p>
+                      <p className="text-white/70 text-xs">ভিডিও আপলোড করলে বা লিংক দিলে এখানে প্রিভিউ দেখতে পাবেন</p>
                     )}
                   </div>
                 </div>
-                <div className="mt-4 rounded-lg bg-secondary p-3 text-xs text-muted-foreground">
-                  💡 হোমপেজে যে কেউ প্লে বাটনে ক্লিক করলে এই ভিডিওটি সম্পূর্ণ পর্দায় চালু হবে।
+
+                <div className="mt-4 rounded-lg bg-secondary p-3 text-xs text-muted-foreground flex items-center gap-2">
+                  <Film className="size-4 text-primary shrink-0" />
+                  <span>
+                    হোমপেজে যে কেউ প্লে বাটনে ক্লিক করলে এই ভিডিওটি সম্পূর্ণ পর্দায় চালু হবে।
+                  </span>
                 </div>
               </div>
             </div>
