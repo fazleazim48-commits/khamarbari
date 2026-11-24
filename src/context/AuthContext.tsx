@@ -20,10 +20,10 @@ const AUTH_STORAGE_KEY = "kb_auth_user_v1";
 
 // Default admin credentials
 export const DEFAULT_ADMIN = {
-  email: "admin@khamarbari.com",
+  email: "fazleazim48@gmail.com",
   phone: "01819929185",
-  password: "admin123",
-  name: "খামার বাড়ি অ্যাডমিন",
+  password: "azim123@",
+  name: "Fazle Azim",
   role: "admin" as const,
 };
 
@@ -90,7 +90,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     return {
       success: false,
-      message: "ইমেইল/ফোন অথবা পাসওয়ার্ড সঠিক নয়। অ্যাডমিন ডেমোর জন্য admin@khamarbari.com এবং পাসওয়ার্ড admin123 ব্যবহার করুন।",
+      message: "ইমেইল/ফোন অথবা পাসওয়ার্ড সঠিক নয়। দয়া করে সঠিক তথ্য দিয়ে চেষ্টা করুন।",
     };
   };
 

@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { ShieldCheck, User, Lock, Mail, ArrowRight, CheckCircle2, AlertCircle } from "lucide-react";
+import { User, Lock, Mail, ArrowRight, CheckCircle2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BrandLogo } from "@/components/BrandLogo";
 import { useAuth, DEFAULT_ADMIN } from "@/context/AuthContext";
@@ -96,19 +96,6 @@ function LoginPage() {
     }
   };
 
-  const fillAdminCredentials = () => {
-    setEmailOrPhone(DEFAULT_ADMIN.email);
-    setPassword(DEFAULT_ADMIN.password);
-    setErrorMsg("");
-    const res = login(DEFAULT_ADMIN.email, DEFAULT_ADMIN.password);
-    if (res.success) {
-      setSuccessMsg("অ্যাডমিন হিসেবে লগইন সফল হয়েছে!");
-      setTimeout(() => {
-        navigate({ to: "/admin" });
-      }, 400);
-    }
-  };
-
   return (
     <div className="flex min-h-[85vh] items-center justify-center bg-secondary/30 px-4 py-12">
       <div className="w-full max-w-md overflow-hidden rounded-2xl border border-border bg-card shadow-xl">
@@ -122,25 +109,6 @@ function LoginPage() {
           </h2>
           <p className="mt-1 text-xs text-muted-foreground">
             {isRegister ? "অর্ডার ট্র্যাক ও সহজ যোগাযোগের জন্য নিবন্ধন করুন" : "অ্যাডমিন ড্যাশবোর্ড ও কাস্টমার পোর্টাল"}
-          </p>
-        </div>
-
-        {/* Quick Admin Demo Button */}
-        <div className="bg-primary/10 p-4 border-b border-primary/20 text-center">
-          <p className="text-xs font-semibold text-primary mb-2 flex items-center justify-center gap-1.5">
-            <ShieldCheck className="size-4" /> দ্রুত অ্যাডমিন ড্যাশবোর্ড দেখতে চান?
-          </p>
-          <Button
-            type="button"
-            variant="default"
-            size="sm"
-            onClick={fillAdminCredentials}
-            className="w-full bg-primary hover:bg-primary/90 text-xs font-bold shadow-sm"
-          >
-            ১-ক্লিকে অ্যাডমিন লগইন করুন 🚀
-          </Button>
-          <p className="text-[11px] text-muted-foreground mt-1.5">
-            ইমেইল: <code className="text-foreground font-mono">admin@khamarbari.com</code> | পাসওয়ার্ড: <code className="text-foreground font-mono">admin123</code>
           </p>
         </div>
 

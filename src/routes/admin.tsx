@@ -27,7 +27,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { BrandLogo } from "@/components/BrandLogo";
 import { farmStore, useFarmData, type ProductItem, type OrderItem, type GalleryItem } from "@/lib/store";
-import { useAuth, DEFAULT_ADMIN } from "@/context/AuthContext";
+import { useAuth } from "@/context/AuthContext";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -111,30 +111,14 @@ function AdminDashboard() {
           </div>
           <h2 className="mt-4 font-display text-2xl font-bold text-foreground">অ্যাডমিন প্রবেশাধিকার প্রয়োজন</h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            এই ড্যাশবোর্ডটি শুধু খামার বাড়ি অ্যাডমিনের জন্য সংরক্ষিত। আপনি বর্তমানে অ্যাডমিন হিসেবে লগইন অবস্থায় নেই।
+            এই ড্যাশবোর্ডটি শুধু খামার বাড়ি অ্যাডমিনের জন্য সংরক্ষিত। দয়া করে সঠিক অ্যাডমিন তথ্য দিয়ে লগইন করুন।
           </p>
 
-          <div className="mt-6 rounded-xl border border-primary/20 bg-primary/5 p-4 text-xs text-muted-foreground">
-            <p className="font-semibold text-primary mb-1">ডেমো অ্যাডমিন তথ্য:</p>
-            <p>ইমেইল: <code className="font-mono text-foreground font-bold">{DEFAULT_ADMIN.email}</code></p>
-            <p>পাসওয়ার্ড: <code className="font-mono text-foreground font-bold">{DEFAULT_ADMIN.password}</code></p>
-          </div>
-
           <div className="mt-6 flex flex-col gap-3">
-            <Button
-              onClick={() => {
-                login(DEFAULT_ADMIN.email, DEFAULT_ADMIN.password);
-                showToast("অ্যাডমিন হিসেবে লগইন হয়েছে!");
-              }}
-              size="lg"
-              className="w-full font-bold"
-            >
-              ১-ক্লিকে অ্যাডমিন লগইন করুন 🔑
+            <Button asChild size="lg" className="w-full font-bold">
+              <Link to="/login">অ্যাডমিন লগইন করুন</Link>
             </Button>
             <Button asChild variant="outline" size="lg">
-              <Link to="/login">লগইন পেজে যান</Link>
-            </Button>
-            <Button asChild variant="ghost">
               <Link to="/">মূল ওয়েবসাইটে ফিরে যান</Link>
             </Button>
           </div>
