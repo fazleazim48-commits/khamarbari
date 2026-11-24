@@ -1,0 +1,6 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { DetailPage } from "@/components/DetailPage";
+import { images } from "@/lib/site-data";
+
+export const Route = createFileRoute("/about")({ head: () => ({ meta: [{ title: "আমাদের সম্পর্কে — খামার বাড়ি" }, { name: "description", content: "খামার বাড়ির সমন্বিত মুরগি ও মাছ চাষের ধারণা এবং দায়িত্বশীল ব্যবস্থাপনা জানুন।" }, { property: "og:title", content: "আমাদের সম্পর্কে — খামার বাড়ি" }, { property: "og:description", content: "আধুনিক, পরিকল্পিত ও সমন্বিত কৃষির একটি স্থানীয় উদ্যোগ।" }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" }] }), component: About });
+function About() { return <DetailPage eyebrow="আমাদের পরিচয়" title="গ্রামীণ অভিজ্ঞতা ও আধুনিক ব্যবস্থাপনার সমন্বয়" description="খামার বাড়ি কুমিল্লার মনোহরগঞ্জে গড়ে ওঠা একটি সমন্বিত কৃষি উদ্যোগ—যেখানে একই পরিসরে মুরগি ও মাছ চাষ পরিকল্পিতভাবে পরিচালিত হয়।" image={images.heroImage} points={["দায়িত্বশীল কৃষি", "সঠিক খাদ্য ব্যবস্থাপনা", "নিয়মিত পরিচর্যা", "পরিচ্ছন্ন পরিবেশ", "স্থানীয় বাস্তবতায় পরিকল্পনা", "মানসম্মত ফিড"]} body="আমাদের লক্ষ্য কোনো অতিরঞ্জিত প্রতিশ্রুতি নয়; বরং প্রতিদিনের কাজকে নিয়ম, পরিচ্ছন্নতা ও পর্যবেক্ষণের মধ্যে রাখা। পানির ওপর উঁচু খামার কাঠামো এবং নিচের মাছের জলাশয়—দুই অংশের জন্য আলাদা যত্নের রুটিন অনুসরণ করা হয়।" />; }

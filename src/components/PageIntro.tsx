@@ -1,0 +1,5 @@
+import type { ReactNode } from "react";
+
+export function PageIntro({ eyebrow, title, description, image, children }: { eyebrow: string; title: string; description: string; image: string; children?: ReactNode }) {
+  return <><section className="relative isolate min-h-[52vh] overflow-hidden"><img src={image} alt="খামার বাড়ির কার্যক্রম" width={1408} height={1008} className="absolute inset-0 -z-20 size-full object-cover" /><div className="absolute inset-0 -z-10 bg-hero-overlay" /><div className="mx-auto flex min-h-[52vh] max-w-7xl items-end px-5 py-16 lg:px-8"><div className="max-w-3xl text-primary-foreground"><span className="text-sm font-bold text-accent">{eyebrow}</span><h1 className="mt-4 font-display text-4xl leading-tight md:text-6xl">{title}</h1><p className="mt-5 max-w-2xl text-lg leading-8 text-primary-foreground/80">{description}</p></div></div></section>{children}</>;
+}

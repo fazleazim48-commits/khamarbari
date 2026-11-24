@@ -1,0 +1,3 @@
+export function SectionHeading({ eyebrow, title, description, center = false }: { eyebrow: string; title: string; description?: string; center?: boolean }) {
+  return <div className={center ? "mx-auto max-w-2xl text-center" : "max-w-2xl"}><span className="text-xs font-bold uppercase tracking-[0.18em] text-accent-strong">{eyebrow}</span><h2 className="mt-3 font-display text-3xl leading-tight text-foreground md:text-5xl">{title}</h2>{description && <p className="mt-4 text-base leading-8 text-muted-foreground">{description}</p>}</div>;
+}
