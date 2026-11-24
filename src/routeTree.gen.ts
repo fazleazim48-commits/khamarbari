@@ -12,10 +12,12 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as ActivitiesRouteImport } from './routes/activities'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as FeedRouteImport } from './routes/feed'
 import { Route as FishRouteImport } from './routes/fish'
 import { Route as GalleryRouteImport } from './routes/gallery'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as PoultryRouteImport } from './routes/poultry'
 
 const IndexRoute = IndexRouteImport.update({
@@ -31,6 +33,11 @@ const AboutRoute = AboutRouteImport.update({
 const ActivitiesRoute = ActivitiesRouteImport.update({
   id: '/activities',
   path: '/activities',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ContactRoute = ContactRouteImport.update({
@@ -53,6 +60,11 @@ const GalleryRoute = GalleryRouteImport.update({
   path: '/gallery',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PoultryRoute = PoultryRouteImport.update({
   id: '/poultry',
   path: '/poultry',
@@ -63,20 +75,24 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/activities': typeof ActivitiesRoute
+  '/admin': typeof AdminRoute
   '/contact': typeof ContactRoute
   '/feed': typeof FeedRoute
   '/fish': typeof FishRoute
   '/gallery': typeof GalleryRoute
+  '/login': typeof LoginRoute
   '/poultry': typeof PoultryRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/activities': typeof ActivitiesRoute
+  '/admin': typeof AdminRoute
   '/contact': typeof ContactRoute
   '/feed': typeof FeedRoute
   '/fish': typeof FishRoute
   '/gallery': typeof GalleryRoute
+  '/login': typeof LoginRoute
   '/poultry': typeof PoultryRoute
 }
 export interface FileRoutesById {
@@ -84,10 +100,12 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/activities': typeof ActivitiesRoute
+  '/admin': typeof AdminRoute
   '/contact': typeof ContactRoute
   '/feed': typeof FeedRoute
   '/fish': typeof FishRoute
   '/gallery': typeof GalleryRoute
+  '/login': typeof LoginRoute
   '/poultry': typeof PoultryRoute
 }
 export interface FileRouteTypes {
@@ -96,30 +114,36 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/activities'
+    | '/admin'
     | '/contact'
     | '/feed'
     | '/fish'
     | '/gallery'
+    | '/login'
     | '/poultry'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/about'
     | '/activities'
+    | '/admin'
     | '/contact'
     | '/feed'
     | '/fish'
     | '/gallery'
+    | '/login'
     | '/poultry'
   id:
     | '__root__'
     | '/'
     | '/about'
     | '/activities'
+    | '/admin'
     | '/contact'
     | '/feed'
     | '/fish'
     | '/gallery'
+    | '/login'
     | '/poultry'
   fileRoutesById: FileRoutesById
 }
@@ -127,10 +151,12 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
   ActivitiesRoute: typeof ActivitiesRoute
+  AdminRoute: typeof AdminRoute
   ContactRoute: typeof ContactRoute
   FeedRoute: typeof FeedRoute
   FishRoute: typeof FishRoute
   GalleryRoute: typeof GalleryRoute
+  LoginRoute: typeof LoginRoute
   PoultryRoute: typeof PoultryRoute
 }
 
@@ -155,6 +181,13 @@ declare module '@tanstack/react-router' {
       path: '/activities'
       fullPath: '/activities'
       preLoaderRoute: typeof ActivitiesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/contact': {
@@ -185,6 +218,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GalleryRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/poultry': {
       id: '/poultry'
       path: '/poultry'
@@ -199,10 +239,12 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
   ActivitiesRoute: ActivitiesRoute,
+  AdminRoute: AdminRoute,
   ContactRoute: ContactRoute,
   FeedRoute: FeedRoute,
   FishRoute: FishRoute,
   GalleryRoute: GalleryRoute,
+  LoginRoute: LoginRoute,
   PoultryRoute: PoultryRoute,
 }
 export const routeTree = rootRouteImport

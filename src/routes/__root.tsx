@@ -13,6 +13,8 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { SiteHeader } from "../components/SiteHeader";
 import { SiteFooter } from "../components/SiteFooter";
+import { AuthProvider } from "../context/AuthContext";
+import { useRouterState } from "@tanstack/react-router";
 
 function NotFoundComponent() {
   return (
@@ -118,12 +120,16 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const isAdminRoute = pathname.startsWith("/admin");
 
   return (
     <QueryClientProvider client={queryClient}>
-      <SiteHeader />
-      <main><Outlet /></main>
-      <SiteFooter />
+      <AuthProvider>
+        {!isAdminRoute && <SiteHeader />}
+        <main><Outlet /></main>
+        {!isAdminRoute && <SiteFooter />}
+      </AuthProvider>
     </QueryClientProvider>
   );
 }
