@@ -1,5 +1,25 @@
 import { useEffect, useState } from "react";
 import { images as defaultImages, products as defaultProducts, site as defaultSite } from "./site-data";
+import {
+  checkDbStatusServerFn,
+  fetchProductsServerFn,
+  saveProductServerFn,
+  deleteProductServerFn,
+  fetchOrdersServerFn,
+  createOrderServerFn,
+  updateOrderStatusServerFn,
+  deleteOrderServerFn,
+  fetchGalleryServerFn,
+  addGalleryItemServerFn,
+  deleteGalleryItemServerFn,
+  fetchMessagesServerFn,
+  sendMessageServerFn,
+  markMessageReadServerFn,
+  deleteMessageServerFn,
+  fetchSettingsServerFn,
+  updateSettingsServerFn,
+  syncAllDataToMongoServerFn,
+} from "./server-api";
 
 export interface ProductItem {
   id: string;
@@ -71,7 +91,7 @@ const STORAGE_KEYS = {
 };
 
 // Initial Seeds
-const initialProducts: ProductItem[] = [
+export const initialProducts: ProductItem[] = [
   {
     id: "prod-1",
     name: "উন্নত মুরগির ফিড (Broiler & Layer)",
@@ -122,7 +142,7 @@ const initialProducts: ProductItem[] = [
   },
 ];
 
-const initialGallery: GalleryItem[] = [
+export const initialGallery: GalleryItem[] = [
   { id: "gal-1", label: "পানির ওপর আধুনিক মুরগির খামার", category: "মুরগি চাষ", image: defaultImages.poultryImage },
   { id: "gal-2", label: "নিচের জলাশয়ে মাছের খাদ্য প্রয়োগ", category: "মাছ চাষ", image: defaultImages.fishImage },
   { id: "gal-3", label: "উন্নত মানের পুষ্টিকর ফিড স্টক", category: "ফিড", image: defaultImages.feedImage },
@@ -132,7 +152,7 @@ const initialGallery: GalleryItem[] = [
   { id: "gal-7", label: "খামারের পরিষ্কার-পরিচ্ছন্নতা কার্যক্রম", category: "পরিচ্ছন্নতা", image: defaultImages.cleanImage },
 ];
 
-const initialSettings: SiteSettings = {
+export const initialSettings: SiteSettings = {
   name: defaultSite.name,
   tagline: defaultSite.tagline,
   owner: defaultSite.owner,
@@ -142,10 +162,10 @@ const initialSettings: SiteSettings = {
   heroImage: defaultImages.heroImage,
   videoTitle: "খামার বাড়ির সমন্বিত কার্যক্রম",
   videoDescription: "পানির ওপর মুরগির খামার ও নিচে মাছ চাষের সমন্বিত বাস্তব ভিডিও দৃশ্য।",
-  videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", // Default sample video or embed
+  videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
 };
 
-const initialOrders: OrderItem[] = [
+export const initialOrders: OrderItem[] = [
   {
     id: "KB-2001",
     customerName: "আব্দুল করিম",
@@ -180,7 +200,7 @@ const initialOrders: OrderItem[] = [
   },
 ];
 
-const initialMessages: ContactMessage[] = [
+export const initialMessages: ContactMessage[] = [
   {
     id: "msg-1",
     name: "জসিম উদ্দিন",
@@ -215,36 +235,131 @@ function setLocal<T>(key: string, value: T): void {
   }
 }
 
-// Global Store API
+// Global Store API with dual MongoDB + LocalStorage Sync
 export const farmStore = {
+  // Sync Status
+  async checkDatabaseStatus() {
+    try {
+      return await checkDbStatusServerFn();
+    } catch (e: any) {
+      return {
+        connected: false,
+        dbName: "khamarbari",
+        message: e?.message || "Failed to reach server",
+        counts: { products: 0, orders: 0, messages: 0 },
+      };
+    }
+  },
+
+  // Pull latest data from MongoDB into local cache
+  async refreshFromMongo(): Promise<boolean> {
+    if (typeof window === "undefined") return false;
+    try {
+      const [products, orders, gallery, messages, settings] = await Promise.all([
+        fetchProductsServerFn().catch(() => null),
+        fetchOrdersServerFn().catch(() => null),
+        fetchGalleryServerFn().catch(() => null),
+        fetchMessagesServerFn().catch(() => null),
+        fetchSettingsServerFn().catch(() => null),
+      ]);
+
+      let updated = false;
+      if (products && Array.isArray(products) && products.length > 0) {
+        setLocal(STORAGE_KEYS.PRODUCTS, products);
+        updated = true;
+      }
+      if (orders && Array.isArray(orders) && orders.length > 0) {
+        setLocal(STORAGE_KEYS.ORDERS, orders);
+        updated = true;
+      }
+      if (gallery && Array.isArray(gallery) && gallery.length > 0) {
+        setLocal(STORAGE_KEYS.GALLERY, gallery);
+        updated = true;
+      }
+      if (messages && Array.isArray(messages) && messages.length > 0) {
+        setLocal(STORAGE_KEYS.MESSAGES, messages);
+        updated = true;
+      }
+      if (settings && typeof settings === "object") {
+        setLocal(STORAGE_KEYS.SETTINGS, settings);
+        updated = true;
+      }
+
+      return updated;
+    } catch (e) {
+      console.warn("MongoDB refresh silent fallback:", e);
+      return false;
+    }
+  },
+
+  // Push all local data into MongoDB (initial sync)
+  async pushAllToMongo(): Promise<{ success: boolean; message: string }> {
+    try {
+      const result = await syncAllDataToMongoServerFn({
+        data: {
+          products: farmStore.getProducts(),
+          orders: farmStore.getOrders(),
+          gallery: farmStore.getGallery(),
+          messages: farmStore.getMessages(),
+          settings: farmStore.getSettings(),
+        },
+      });
+      return {
+        success: Boolean(result?.success),
+        message: result?.message || (result?.success ? "সাফল্যের সাথে সেভ হয়েছে" : "MongoDB সংযুক্ত নয়"),
+      };
+    } catch (err: any) {
+      return { success: false, message: err?.message || "সিঙ্ক করতে ব্যর্থ হয়েছে" };
+    }
+  },
+
   // Products
   getProducts(): ProductItem[] {
     return getLocal<ProductItem[]>(STORAGE_KEYS.PRODUCTS, initialProducts);
   },
   saveProduct(product: Omit<ProductItem, "id" | "createdAt"> & { id?: string }): ProductItem {
     const products = farmStore.getProducts();
+    let savedItem: ProductItem;
+
     if (product.id) {
-      // Edit
       const index = products.findIndex((p) => p.id === product.id);
       if (index !== -1) {
-        products[index] = { ...products[index], ...product };
-        setLocal(STORAGE_KEYS.PRODUCTS, products);
-        return products[index];
+        savedItem = { ...products[index], ...product };
+        products[index] = savedItem;
+      } else {
+        savedItem = {
+          ...product,
+          id: product.id,
+          createdAt: new Date().toISOString(),
+        } as ProductItem;
+        products.unshift(savedItem);
       }
+    } else {
+      savedItem = {
+        ...product,
+        id: "prod-" + Date.now(),
+        createdAt: new Date().toISOString(),
+      };
+      products.unshift(savedItem);
     }
-    // Add new
-    const newProduct: ProductItem = {
-      ...product,
-      id: "prod-" + Date.now(),
-      createdAt: new Date().toISOString(),
-    };
-    const updated = [newProduct, ...products];
-    setLocal(STORAGE_KEYS.PRODUCTS, updated);
-    return newProduct;
+
+    setLocal(STORAGE_KEYS.PRODUCTS, products);
+
+    // Sync to MongoDB in background
+    saveProductServerFn({ data: savedItem }).catch((err) =>
+      console.warn("MongoDB product save background error:", err)
+    );
+
+    return savedItem;
   },
   deleteProduct(id: string): void {
     const products = farmStore.getProducts().filter((p) => p.id !== id);
     setLocal(STORAGE_KEYS.PRODUCTS, products);
+
+    // Sync to MongoDB in background
+    deleteProductServerFn({ data: id }).catch((err) =>
+      console.warn("MongoDB product delete background error:", err)
+    );
   },
 
   // Orders
@@ -269,7 +384,7 @@ export const farmStore = {
 
     const newOrder: OrderItem = {
       ...orderData,
-      id: "KB-" + (Math.floor(1000 + Math.random() * 9000)),
+      id: "KB-" + Math.floor(1000 + Math.random() * 9000),
       totalPriceText,
       status: "pending",
       statusLabel: "অপেক্ষমাণ",
@@ -281,7 +396,15 @@ export const farmStore = {
         minute: "2-digit",
       }),
     };
-    setLocal(STORAGE_KEYS.ORDERS, [newOrder, ...orders]);
+
+    const updated = [newOrder, ...orders];
+    setLocal(STORAGE_KEYS.ORDERS, updated);
+
+    // Persist to MongoDB in background
+    createOrderServerFn({ data: newOrder }).catch((err) =>
+      console.warn("MongoDB order creation background error:", err)
+    );
+
     return newOrder;
   },
   updateOrderStatus(orderId: string, status: OrderItem["status"]): void {
@@ -291,17 +414,28 @@ export const farmStore = {
       delivered: "ডেলিভার্ড",
       cancelled: "বাতিল",
     };
+    const statusLabel = labels[status];
     const orders = farmStore.getOrders().map((o) => {
       if (o.id === orderId) {
-        return { ...o, status, statusLabel: labels[status] };
+        return { ...o, status, statusLabel };
       }
       return o;
     });
     setLocal(STORAGE_KEYS.ORDERS, orders);
+
+    // Sync to MongoDB in background
+    updateOrderStatusServerFn({
+      data: { orderId, status, statusLabel },
+    }).catch((err) => console.warn("MongoDB order status update background error:", err));
   },
   deleteOrder(orderId: string): void {
     const orders = farmStore.getOrders().filter((o) => o.id !== orderId);
     setLocal(STORAGE_KEYS.ORDERS, orders);
+
+    // Sync to MongoDB in background
+    deleteOrderServerFn({ data: orderId }).catch((err) =>
+      console.warn("MongoDB order delete background error:", err)
+    );
   },
 
   // Gallery
@@ -312,11 +446,20 @@ export const farmStore = {
     const list = farmStore.getGallery();
     const newItem: GalleryItem = { ...item, id: "gal-" + Date.now() };
     setLocal(STORAGE_KEYS.GALLERY, [newItem, ...list]);
+
+    addGalleryItemServerFn({ data: newItem }).catch((err) =>
+      console.warn("MongoDB gallery item background error:", err)
+    );
+
     return newItem;
   },
   deleteGalleryItem(id: string): void {
     const list = farmStore.getGallery().filter((g) => g.id !== id);
     setLocal(STORAGE_KEYS.GALLERY, list);
+
+    deleteGalleryItemServerFn({ data: id }).catch((err) =>
+      console.warn("MongoDB gallery delete background error:", err)
+    );
   },
 
   // Messages
@@ -332,15 +475,28 @@ export const farmStore = {
       isRead: false,
     };
     setLocal(STORAGE_KEYS.MESSAGES, [newMsg, ...list]);
+
+    sendMessageServerFn({ data: newMsg }).catch((err) =>
+      console.warn("MongoDB message save background error:", err)
+    );
+
     return newMsg;
   },
   markMessageRead(id: string): void {
     const list = farmStore.getMessages().map((m) => (m.id === id ? { ...m, isRead: true } : m));
     setLocal(STORAGE_KEYS.MESSAGES, list);
+
+    markMessageReadServerFn({ data: id }).catch((err) =>
+      console.warn("MongoDB mark read background error:", err)
+    );
   },
   deleteMessage(id: string): void {
     const list = farmStore.getMessages().filter((m) => m.id !== id);
     setLocal(STORAGE_KEYS.MESSAGES, list);
+
+    deleteMessageServerFn({ data: id }).catch((err) =>
+      console.warn("MongoDB message delete background error:", err)
+    );
   },
 
   // Settings
@@ -351,11 +507,16 @@ export const farmStore = {
     const current = farmStore.getSettings();
     const updated = { ...current, ...settings };
     setLocal(STORAGE_KEYS.SETTINGS, updated);
+
+    updateSettingsServerFn({ data: updated }).catch((err) =>
+      console.warn("MongoDB settings update background error:", err)
+    );
+
     return updated;
   },
 };
 
-// React hook to listen to store updates live
+// React hook to listen to store updates live + initial Mongo sync
 export function useFarmData() {
   const [data, setData] = useState({
     products: farmStore.getProducts(),
@@ -376,8 +537,13 @@ export function useFarmData() {
       });
     }
 
-    // Initial load sync
+    // Refresh immediately from local cache
     refresh();
+
+    // Pull from MongoDB in background on mount
+    farmStore.refreshFromMongo().then((hasNewData) => {
+      if (hasNewData) refresh();
+    });
 
     window.addEventListener("kb_storage_update", refresh);
     window.addEventListener("storage", refresh);

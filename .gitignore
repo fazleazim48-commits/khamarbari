@@ -21,6 +21,11 @@ dist-ssr
 .wrangler/
 .dev.vars
 
+# Local Env Files
+.env
+.env*.local
+!.env.example
+
 # Editor directories and files
 push_to_github.bat
 .vscode/*

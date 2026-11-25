@@ -24,6 +24,8 @@ import {
   ShieldCheck,
   Save,
   Film,
+  Database,
+  RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BrandLogo } from "@/components/BrandLogo";
@@ -108,6 +110,55 @@ function AdminDashboard() {
 
   const productFileInputRef = useRef<HTMLInputElement>(null);
   const galleryFileInputRef = useRef<HTMLInputElement>(null);
+
+  // MongoDB Status State
+  const [dbStatus, setDbStatus] = useState<{
+    connected: boolean;
+    dbName: string;
+    message: string;
+    counts?: { products: number; orders: number; messages: number };
+  } | null>(null);
+  const [isCheckingDb, setIsCheckingDb] = useState(false);
+  const [isSyncingDb, setIsSyncingDb] = useState(false);
+
+  const checkDatabase = async () => {
+    setIsCheckingDb(true);
+    try {
+      const res = await farmStore.checkDatabaseStatus();
+      setDbStatus(res);
+    } catch (err: any) {
+      setDbStatus({
+        connected: false,
+        dbName: "khamarbari",
+        message: err?.message || "সার্ভার সংযোগ করা যায়নি",
+      });
+    } finally {
+      setIsCheckingDb(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isAdmin) {
+      checkDatabase();
+    }
+  }, [isAdmin]);
+
+  const handleSyncAllToMongo = async () => {
+    setIsSyncingDb(true);
+    try {
+      const res = await farmStore.pushAllToMongo();
+      if (res.success) {
+        showToast("সব তথ্য MongoDB তে সফলভাবে সিঙ্ক হয়েছে!");
+        await checkDatabase();
+      } else {
+        showToast(res.message || "সিঙ্ক করতে ব্যর্থ হয়েছে");
+      }
+    } catch (err: any) {
+      showToast("ত্রুটি: " + (err?.message || "সিঙ্ক ব্যর্থ"));
+    } finally {
+      setIsSyncingDb(false);
+    }
+  };
 
   const showToast = (msg: string) => {
     setToastMsg(msg);
@@ -310,6 +361,23 @@ function AdminDashboard() {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
+            {dbStatus && (
+              <div
+                className={`hidden md:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${
+                  dbStatus.connected
+                    ? "bg-emerald-500/10 text-emerald-700 border-emerald-500/20"
+                    : "bg-amber-500/10 text-amber-700 border-amber-500/20"
+                }`}
+                title={dbStatus.message}
+              >
+                <span
+                  className={`size-2 rounded-full ${
+                    dbStatus.connected ? "bg-emerald-500 animate-pulse" : "bg-amber-500"
+                  }`}
+                />
+                <span>{dbStatus.connected ? "MongoDB সংযুক্ত" : "লোকাল ব্যাকআপ মোড"}</span>
+              </div>
+            )}
             <Button asChild variant="outline" size="sm" className="hidden sm:inline-flex text-xs">
               <Link to="/" target="_blank">
                 <ExternalLink className="size-3.5 mr-1" /> সাইট প্রিভিউ
@@ -425,6 +493,72 @@ function AdminDashboard() {
                   {data.messages.length.toLocaleString("bn-BD")}
                 </h3>
                 <p className="mt-1 text-xs text-muted-foreground">ওয়েবসাইট ফরম থেকে প্রাপ্ত বার্তা</p>
+              </div>
+            </div>
+
+            {/* MongoDB Database Status & Sync Banner */}
+            <div className="rounded-2xl border border-border bg-card p-5 sm:p-6 shadow-sm">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex items-start gap-4">
+                  <div
+                    className={`grid size-12 shrink-0 place-items-center rounded-xl ${
+                      dbStatus?.connected
+                        ? "bg-emerald-500/10 text-emerald-600"
+                        : "bg-amber-500/10 text-amber-600"
+                    }`}
+                  >
+                    <Database className="size-6" />
+                  </div>
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="text-base font-bold text-foreground">ক্লাউড ডাটাবেজ (MongoDB) স্থিতি</h3>
+                      <span
+                        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${
+                          dbStatus?.connected
+                            ? "bg-emerald-500/10 text-emerald-700 border border-emerald-500/20"
+                            : "bg-amber-500/10 text-amber-700 border border-amber-500/20"
+                        }`}
+                      >
+                        <span
+                          className={`size-1.5 rounded-full ${
+                            dbStatus?.connected ? "bg-emerald-500 animate-pulse" : "bg-amber-500"
+                          }`}
+                        />
+                        {dbStatus?.connected
+                          ? `সংযুক্ত (Database: ${dbStatus.dbName})`
+                          : "লোকাল ব্যাকআপ মোড (Local Storage)"}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
+                      {dbStatus?.connected
+                        ? `MongoDB Atlas সফলভাবে কানেক্টেড। পণ্য (${dbStatus.counts?.products ?? data.products.length}), অর্ডার (${dbStatus.counts?.orders ?? data.orders.length}), ও বার্তা (${dbStatus.counts?.messages ?? data.messages.length}) ক্লাউডে সরাসরি সংরক্ষণ হচ্ছে।`
+                        : "বর্তমানে ব্রাউজারের লোকাল স্টোরেজে তথ্য সংরক্ষিত হচ্ছে। Vercel বা .env ফাইলে MONGODB_URI যুক্ত করলেই সরাসরি ক্লাউড ডাটাবেজে পার্মানেন্ট ব্যাকআপ চালু হয়ে যাবে।"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={checkDatabase}
+                    disabled={isCheckingDb}
+                    className="text-xs"
+                  >
+                    <RefreshCw className={`size-3.5 mr-1.5 ${isCheckingDb ? "animate-spin" : ""}`} />
+                    রিফ্রেশ
+                  </Button>
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={handleSyncAllToMongo}
+                    disabled={isSyncingDb}
+                    className="text-xs"
+                  >
+                    <Database className="size-3.5 mr-1.5" />
+                    {isSyncingDb ? "সিঙ্ক হচ্ছে..." : "MongoDB তে সিঙ্ক করুন"}
+                  </Button>
+                </div>
               </div>
             </div>
 
