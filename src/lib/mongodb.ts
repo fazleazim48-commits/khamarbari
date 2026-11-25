@@ -1,4 +1,12 @@
 import { MongoClient, Db } from "mongodb";
+import dns from "node:dns";
+
+// Configure reliable DNS servers to ensure MongoDB Atlas SRV resolution works across all ISPs/networks
+try {
+  dns.setServers(["8.8.8.8", "1.1.1.1"]);
+} catch {
+  // ignore if restricted
+}
 
 // Cache client connection across hot reloads and serverless function invocations
 let client: MongoClient | null = null;
