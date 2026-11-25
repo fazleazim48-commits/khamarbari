@@ -85,7 +85,13 @@ export function VideoModal({ isOpen, onClose, videoUrl, title }: VideoModalProps
             blobUrl ? (
               <video src={blobUrl} controls autoPlay className="size-full object-contain" />
             ) : (
-              <p className="text-white/70 text-xs">ভিডিও ফাইলটি খুঁজে পাওয়া যায়নি।</p>
+              <div className="p-6 text-center text-white max-w-md">
+                <Film className="mx-auto size-12 text-primary/70 mb-3" />
+                <h4 className="font-bold text-base text-white">ভিডিওটি খুঁজে পাওয়া যায়নি</h4>
+                <p className="text-xs text-white/70 mt-1.5 leading-relaxed">
+                  ভিডিওটি লোকাল ব্রাউজারে আপলোড করা ছিল। সব ভিজিটর যেন যেকোনো মোবাইল বা কম্পিউটার থেকে দেখতে পায়, সেজন্য অ্যাডমিন প্যানেল থেকে একটি ইউটিউব (YouTube) ভিডিও লিংক যুক্ত করুন।
+                </p>
+              </div>
             )
           ) : isYouTube ? (
             <iframe

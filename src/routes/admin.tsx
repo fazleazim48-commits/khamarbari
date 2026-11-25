@@ -863,17 +863,6 @@ function AdminDashboard() {
                 <div className="mt-4 flex gap-2 rounded-lg bg-secondary p-1">
                   <button
                     type="button"
-                    onClick={() => setVideoUploadMode("upload")}
-                    className={`flex-1 rounded-md py-2 text-xs font-bold transition flex items-center justify-center gap-1.5 ${
-                      videoUploadMode === "upload"
-                        ? "bg-primary text-primary-foreground shadow-sm"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    <Upload className="size-3.5" /> কম্পিউটার থেকে সরাসরি আপলোড
-                  </button>
-                  <button
-                    type="button"
                     onClick={() => setVideoUploadMode("url")}
                     className={`flex-1 rounded-md py-2 text-xs font-bold transition flex items-center justify-center gap-1.5 ${
                       videoUploadMode === "url"
@@ -881,7 +870,18 @@ function AdminDashboard() {
                         : "text-muted-foreground hover:text-foreground"
                     }`}
                   >
-                    <ExternalLink className="size-3.5" /> ইউটিউব / অনলাইন লিংক
+                    <ExternalLink className="size-3.5" /> ইউটিউব লিংক (সুপারিশকৃত)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setVideoUploadMode("upload")}
+                    className={`flex-1 rounded-md py-2 text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                      videoUploadMode === "upload"
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <Upload className="size-3.5" /> লোকাল কম্পিউটার ফাইল
                   </button>
                 </div>
 
